@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Order, OrderStatus, MenuItem } from '../types';
-import { X, ChefHat, CheckCircle, Clock, AlertCircle, TrendingUp, DollarSign, Package, Power } from 'lucide-react';
+import { X, ChefHat, CheckCircle, Clock, AlertCircle, TrendingUp, DollarSign, Package, Power, Star, MessageSquare } from 'lucide-react';
 
 interface KitchenDashboardModalProps {
   isOpen: boolean;
@@ -202,6 +202,31 @@ export const KitchenDashboardModal: React.FC<KitchenDashboardModalProps> = ({
                           </div>
                         ))}
                       </div>
+
+                      {/* Customer Review if available */}
+                      {order.review && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 space-y-1 text-xs">
+                          <div className="flex items-center justify-between text-amber-900 font-bold">
+                            <span className="flex items-center gap-1">
+                              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
+                              顧客評價: {order.review.rating}.0 分
+                            </span>
+                            <span className="text-[10px] text-amber-700">{order.review.createdAt}</span>
+                          </div>
+                          {order.review.tags && order.review.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1 py-0.5">
+                              {order.review.tags.map((t) => (
+                                <span key={t} className="text-[10px] bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded">
+                                  {t}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {order.review.comment && (
+                            <p className="text-[11px] text-stone-700 italic">“{order.review.comment}”</p>
+                          )}
+                        </div>
+                      )}
 
                       {/* Bottom Controls */}
                       <div className="pt-2 border-t flex items-center justify-between gap-2">

@@ -34,7 +34,7 @@ ${JSON.stringify(menuItems.map((m: any) => ({ name: m.name, category: m.category
 4. 【溫馨小貼士】 (例如：甜度冰塊建議、辣度搭配建議)`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.6-flash',
         contents: prompt,
       });
 

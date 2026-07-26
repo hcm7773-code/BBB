@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Order, OrderStatus } from '../types';
-import { X, Clock, CheckCircle2, ChefHat, PackageCheck, Utensils, MapPin, Phone, Printer, RefreshCw } from 'lucide-react';
+import { X, Clock, CheckCircle2, ChefHat, PackageCheck, Utensils, Printer, RefreshCw, Star, MessageSquare, Send, Edit3, Sparkles } from 'lucide-react';
 
 interface OrderTrackerModalProps {
   isOpen: boolean;
   onClose: () => void;
   orders: Order[];
   onUpdateOrderStatus: (orderId: string, status: OrderStatus) => void;
+  onSubmitReview: (orderId: string, rating: number, comment: string, tags?: string[]) => void;
 }
 
 const STATUS_STEPS: { status: OrderStatus; label: string; desc: string; icon: React.ReactNode }[] = [
@@ -16,11 +17,230 @@ const STATUS_STEPS: { status: OrderStatus; label: string; desc: string; icon: Re
   { status: 'completed', label: '已完成', desc: '祝您用餐愉快！', icon: <CheckCircle2 className="w-4 h-4" /> },
 ];
 
+const QUICK_TAG_OPTIONS = [
+  '🍜 餐點極致美味',
+  '⚡ 出餐迅速',
+  '✨ 包裝衛生乾淨',
+  '❤️ 服務親切打動人心',
+  '💰 CP值高物超所值',
+];
+
+const RATING_LABELS: Record<number, string> = {
+  1: '1分 - 不太滿意',
+  2: '2分 - 尚有改善空間',
+  3: '3分 - 普通平實',
+  4: '4分 - 滿意值得推薦',
+  5: '5分 - 極致美味！極力推薦',
+};
+
+interface OrderReviewSectionProps {
+  order: Order;
+  onSubmitReview: (orderId: string, rating: number, comment: string, tags?: string[]) => void;
+}
+
+const OrderReviewSection: React.FC<OrderReviewSectionProps> = ({ order, onSubmitReview }) => {
+  const existingReview = order.review;
+  const [isEditing, setIsEditing] = useState<boolean>(!existingReview);
+  const [rating, setRating] = useState<number>(existingReview ? existingReview.rating : 5);
+  const [hoverRating, setHoverRating] = useState<number>(0);
+  const [comment, setComment] = useState<string>(existingReview ? existingReview.comment : '');
+  const [selectedTags, setSelectedTags] = useState<string[]>(existingReview?.tags || []);
+
+  const handleToggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (rating < 1) return;
+    onSubmitReview(order.id, rating, comment, selectedTags);
+    setIsEditing(false);
+  };
+
+  // If already reviewed and not currently editing:
+  if (existingReview && !isEditing) {
+    return (
+      <div className="bg-gradient-to-r from-amber-50 to-orange-50/50 rounded-2xl p-4 border border-amber-200/80 space-y-3 animate-fadeIn">
+        <div className="flex items-center justify-between border-b border-amber-200/60 pb-2.5">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 text-amber-500">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  className={`w-4 h-4 ${
+                    star <= existingReview.rating
+                      ? 'fill-amber-400 text-amber-500'
+                      : 'text-stone-300'
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="font-extrabold text-stone-900 text-sm">
+              {existingReview.rating}.0
+            </span>
+            <span className="text-xs text-amber-800/80 font-medium bg-amber-100 px-2 py-0.5 rounded-full">
+              已完成評價
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-stone-400">{existingReview.createdAt}</span>
+            <button
+              onClick={() => setIsEditing(true)}
+              className="flex items-center gap-1 text-xs text-stone-600 hover:text-stone-900 bg-white border border-stone-200 px-2.5 py-1 rounded-lg transition-all shadow-2xs"
+            >
+              <Edit3 className="w-3 h-3 text-amber-600" />
+              <span>修改評價</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Tags */}
+        {existingReview.tags && existingReview.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {existingReview.tags.map((tag) => (
+              <span
+                key={tag}
+                className="text-[11px] font-medium bg-amber-100/80 text-amber-900 px-2.5 py-0.5 rounded-md border border-amber-200/60"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Comment */}
+        {existingReview.comment ? (
+          <div className="bg-white/80 backdrop-blur-xs p-3 rounded-xl border border-amber-200/50 text-xs text-stone-700 italic flex items-start gap-2">
+            <MessageSquare className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+            <span className="leading-relaxed font-normal">“{existingReview.comment}”</span>
+          </div>
+        ) : (
+          <p className="text-xs text-stone-400 italic">無填寫文字心得</p>
+        )}
+      </div>
+    );
+  }
+
+  // Review Form
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="bg-stone-900 text-white rounded-2xl p-4 sm:p-5 space-y-4 shadow-lg border border-stone-800 animate-fadeIn"
+    >
+      <div className="flex items-center justify-between border-b border-stone-800 pb-3">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400">
+            <Sparkles className="w-4 h-4" />
+          </div>
+          <div>
+            <h4 className="font-bold text-sm text-stone-100">
+              {existingReview ? '修改用餐心得與評分' : '享用完畢！請給予滿意度評分與心得'}
+            </h4>
+            <p className="text-[11px] text-stone-400">您的意見是廚房團隊進步的最佳動力</p>
+          </div>
+        </div>
+
+        {existingReview && (
+          <button
+            type="button"
+            onClick={() => setIsEditing(false)}
+            className="text-xs text-stone-400 hover:text-stone-200 underline"
+          >
+            取消修改
+          </button>
+        )}
+      </div>
+
+      {/* Interactive Stars */}
+      <div className="space-y-1.5">
+        <label className="text-xs text-stone-300 font-medium block">點擊星級評分：</label>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            {[1, 2, 3, 4, 5].map((star) => {
+              const active = star <= (hoverRating || rating);
+              return (
+                <button
+                  key={star}
+                  type="button"
+                  onMouseEnter={() => setHoverRating(star)}
+                  onMouseLeave={() => setHoverRating(0)}
+                  onClick={() => setRating(star)}
+                  className="p-1 text-stone-600 hover:scale-125 transition-transform focus:outline-none"
+                >
+                  <Star
+                    className={`w-6 h-6 transition-colors ${
+                      active
+                        ? 'fill-amber-400 text-amber-400'
+                        : 'text-stone-600'
+                    }`}
+                  />
+                </button>
+              );
+            })}
+          </div>
+          <span className="text-xs font-bold text-amber-400 pl-2">
+            {RATING_LABELS[hoverRating || rating]}
+          </span>
+        </div>
+      </div>
+
+      {/* Quick Tag Pills */}
+      <div className="space-y-1.5">
+        <label className="text-xs text-stone-300 font-medium block">快速心得標籤（可多選）：</label>
+        <div className="flex flex-wrap gap-1.5">
+          {QUICK_TAG_OPTIONS.map((tag) => {
+            const isSelected = selectedTags.includes(tag);
+            return (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => handleToggleTag(tag)}
+                className={`text-xs px-2.5 py-1 rounded-xl transition-all border ${
+                  isSelected
+                    ? 'bg-amber-500 text-stone-950 font-bold border-amber-400'
+                    : 'bg-stone-800 text-stone-300 border-stone-700 hover:bg-stone-700'
+                }`}
+              >
+                {tag}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Dining Comment Text Area */}
+      <div className="space-y-1.5">
+        <label className="text-xs text-stone-300 font-medium block">用餐心得評語：</label>
+        <textarea
+          rows={2}
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          placeholder="分享美味餐點感受、口味偏好，或是給主廚的鼓勵與建議..."
+          className="w-full bg-stone-800 border border-stone-700 rounded-xl p-3 text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all resize-none"
+        />
+      </div>
+
+      {/* Submit Button */}
+      <button
+        type="submit"
+        className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-stone-950 font-bold text-xs py-2.5 px-4 rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
+      >
+        <Send className="w-3.5 h-3.5" />
+        <span>{existingReview ? '更新用餐心得評分' : '送出用餐心得評分'}</span>
+      </button>
+    </form>
+  );
+};
+
 export const OrderTrackerModal: React.FC<OrderTrackerModalProps> = ({
   isOpen,
   onClose,
   orders,
   onUpdateOrderStatus,
+  onSubmitReview,
 }) => {
   if (!isOpen) return null;
 
@@ -212,6 +432,14 @@ export const OrderTrackerModal: React.FC<OrderTrackerModalProps> = ({
                     </div>
                   </div>
 
+                  {/* Review Module (Shown when order status is 'completed') */}
+                  {order.status === 'completed' && (
+                    <OrderReviewSection
+                      order={order}
+                      onSubmitReview={onSubmitReview}
+                    />
+                  )}
+
                 </div>
               );
             })
@@ -222,3 +450,4 @@ export const OrderTrackerModal: React.FC<OrderTrackerModalProps> = ({
     </div>
   );
 };
+

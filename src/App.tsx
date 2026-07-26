@@ -27,7 +27,7 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Orders State (Pre-populate with 1 active sample order if empty)
+  // Orders State (Pre-populate with sample orders if empty)
   const [orders, setOrders] = useState<Order[]>(() => {
     const saved = localStorage.getItem('tasty_orders');
     if (saved) return JSON.parse(saved);
@@ -74,6 +74,42 @@ export default function App() {
         status: 'preparing',
         createdAt: '18:10',
         estimatedMinutes: 12,
+      },
+      {
+        id: 'ord_sample_2',
+        orderNumber: '#A1082',
+        items: [
+          {
+            cartItemId: 'sample_3',
+            menuItem: INITIAL_MENU_ITEMS[1], // 川味紅燒牛肉麵
+            quantity: 1,
+            selectedOptions: [
+              { groupId: 'spicy_level', groupTitle: '辣度選擇', optionId: 'spicy_medium', optionName: '中辣 🌶️🌶️', price: 0 },
+            ],
+            unitPrice: 220,
+            totalPrice: 220,
+          },
+        ],
+        orderType: 'dine-in',
+        tableNumber: 'B3',
+        customerName: '李小姐',
+        customerPhone: '0988-765-432',
+        subtotal: 220,
+        discount: 0,
+        deliveryFee: 0,
+        serviceFee: 10,
+        total: 230,
+        paymentMethod: 'credit',
+        paymentStatus: 'paid',
+        status: 'completed',
+        createdAt: '17:20',
+        estimatedMinutes: 0,
+        review: {
+          rating: 5,
+          comment: '湯頭濃郁順口，牛肉燉得很軟嫩入味！出餐效率極佳，一定會再回訪！',
+          createdAt: '17:55',
+          tags: ['🍜 餐點極致美味', '⚡ 出餐迅速', '💰 CP值高物超所值'],
+        },
       },
     ];
   });
@@ -185,6 +221,33 @@ export default function App() {
       prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
     );
     showToast(`訂單狀態已更新為：${newStatus === 'preparing' ? '烹調中' : newStatus === 'ready' ? '待出餐' : '已完成'}`);
+  };
+
+  // Submit order review
+  const handleSubmitOrderReview = (
+    orderId: string,
+    rating: number,
+    comment: string,
+    tags: string[] = []
+  ) => {
+    const now = new Date();
+    const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              review: {
+                rating,
+                comment,
+                createdAt: timeStr,
+                tags,
+              },
+            }
+          : o
+      )
+    );
+    showToast('🎉 感謝您的寶貴評價與用餐心得！');
   };
 
   // Toggle item availability (Out of Stock / In Stock)
@@ -398,6 +461,7 @@ export default function App() {
         onClose={() => setIsOrderTrackerOpen(false)}
         orders={orders}
         onUpdateOrderStatus={handleUpdateOrderStatus}
+        onSubmitReview={handleSubmitOrderReview}
       />
 
       <KitchenDashboardModal

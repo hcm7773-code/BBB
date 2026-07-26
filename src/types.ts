@@ -55,6 +55,13 @@ export interface CartItem {
 
 export type OrderStatus = 'received' | 'preparing' | 'ready' | 'completed' | 'cancelled';
 
+export interface OrderReview {
+  rating: number; // 1 to 5 stars
+  comment: string;
+  createdAt: string;
+  tags?: string[];
+}
+
 export interface Order {
   id: string;
   orderNumber: string;
@@ -77,6 +84,7 @@ export interface Order {
   status: OrderStatus;
   createdAt: string;
   estimatedMinutes: number;
+  review?: OrderReview;
 }
 
 export interface PromoCode {
