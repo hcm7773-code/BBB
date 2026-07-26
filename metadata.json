@@ -1,0 +1,6 @@
+{
+  "name": "線上點餐系統",
+  "description": "提供線上美食點餐、客製化甜度冰塊加料選單、即時購物車、多元支付 checkout 與廚房接單追蹤之完整點餐網站",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
