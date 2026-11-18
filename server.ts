@@ -535,6 +535,160 @@ ${mentions
     }
   });
 
+  // 7. AI Daily In-Depth Sentiment Briefing (5 Topics Summary & Perspective)
+  app.post('/api/ai-daily-briefing', async (req, res) => {
+    try {
+      const {
+        dateLabel,
+        mentions,
+        sevenDayLatest,
+        platformsSummary,
+        activeAlertsCount,
+        forceRefresh,
+      } = req.body;
+
+      const mentionIdsKey = Array.isArray(mentions)
+        ? mentions.map((m: any) => m.id).join(',')
+        : 'none';
+      const cacheKey = `daily-briefing:${dateLabel || '2026-11-18'}:${mentionIdsKey}`;
+      if (!forceRefresh) {
+        const cached = getCachedResponse(cacheKey);
+        if (cached) return res.json(cached);
+      }
+
+      const ai = createGeminiClient();
+      if (!ai) {
+        return res.status(500).json({
+          error: '尚未設定 GEMINI_API_KEY，請於 Settings > Secrets 確認金鑰設定。',
+        });
+      }
+
+      const CATEGORIES = [
+        '產品體驗',
+        '行銷活動',
+        '競爭策略',
+        '人才招募',
+        '政策環境',
+      ] as const;
+
+      const prompt = `你是「EAAF 教育新創產業輿情分析平台」每日深度簡報主編與產業研究總監。
+請針對簡報日期「${dateLabel || '2026-11-18'}」，綜合分析收錄的社群輿情語料、當日聲量結構與追蹤平台表現，自動撰寫一份涵蓋五大議題的「每日輿情深度簡報」。
+
+必須完整涵蓋這五大議題（topicBriefings 陣列必須依序包含這 5 個 category，不可遺漏）：
+1. 產品體驗
+2. 行銷活動
+3. 競爭策略
+4. 人才招募
+5. 政策環境
+
+當日總體聲量指標：
+- 最新單日跨平台聲量：正面 ${sevenDayLatest?.正面 || 0}、中立 ${sevenDayLatest?.中立 || 0}、負面 ${sevenDayLatest?.負面 || 0}（總聲量 ${sevenDayLatest?.總聲量 || 0}）
+- 追蹤平台數量：${Array.isArray(platformsSummary) ? platformsSummary.length : 9} 家（目前觸發風險警報：${activeAlertsCount ?? 0} 項）
+
+收錄輿情動態語料：
+${(mentions || [])
+  .map(
+    (m: any, i: number) =>
+      `${i + 1}. [${m.timestamp}] ${m.platformName} (${m.stakeholder} / ${m.polarity} / ${m.topicTag})：${m.excerpt}`
+  )
+  .join('\n')}
+
+請以專業、具決策參考價值的繁體中文輸出結構化 JSON：
+- executiveOverview：3 至 4 句總結當日全市場輿情主軸與正負動能消長。
+- topicBriefings：針對五大議題逐一提供「dailySummary（每日關鍵摘要文字，2-3 句）」、「perspectiveAdvice（分析師觀點與具體應對建議，2 句）」、「sentimentTone（例如：正面主導、中性觀望、審慎偏負）」、「mentionCount（該議題關聯樣本估算筆數）」與「keySignals（2 個核心代表訊號短詞）」。
+- crossTopicRecommendations：3 條跨議題整合行動建議。`;
+
+      const response = await generateWithResilience(ai, {
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              briefingDate: { type: Type.STRING },
+              title: {
+                type: Type.STRING,
+                description: '當日深度簡報主標題（24字以內）',
+              },
+              executiveOverview: {
+                type: Type.STRING,
+                description: '當日輿情全景導讀摘要（3 至 4 句繁體中文）',
+              },
+              topicBriefings: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    category: { type: Type.STRING },
+                    sentimentTone: { type: Type.STRING },
+                    mentionCount: { type: Type.INTEGER },
+                    dailySummary: { type: Type.STRING },
+                    perspectiveAdvice: { type: Type.STRING },
+                    keySignals: {
+                      type: Type.ARRAY,
+                      items: { type: Type.STRING },
+                    },
+                  },
+                  required: [
+                    'category',
+                    'sentimentTone',
+                    'mentionCount',
+                    'dailySummary',
+                    'perspectiveAdvice',
+                    'keySignals',
+                  ],
+                },
+              },
+              crossTopicRecommendations: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+              },
+            },
+            required: [
+              'briefingDate',
+              'title',
+              'executiveOverview',
+              'topicBriefings',
+              'crossTopicRecommendations',
+            ],
+          },
+        },
+      });
+
+      const parsed = JSON.parse(response.text || '{}');
+      const rawItems = Array.isArray(parsed.topicBriefings) ? parsed.topicBriefings : [];
+
+      const normalizedTopics = CATEGORIES.map((cat) => {
+        const found = rawItems.find((item: any) => item?.category === cat);
+        return {
+          category: cat,
+          sentimentTone: String(found?.sentimentTone || '中性關注'),
+          mentionCount: Math.max(0, Number(found?.mentionCount) || 0),
+          dailySummary: String(found?.dailySummary || '尚無額外補充摘要。'),
+          perspectiveAdvice: String(found?.perspectiveAdvice || '持續追蹤該議題社群討論走向。'),
+          keySignals: Array.isArray(found?.keySignals)
+            ? found.keySignals.slice(0, 3).map((s: any) => String(s))
+            : [],
+        };
+      });
+
+      const payload = {
+        briefingDate: String(parsed.briefingDate || dateLabel || '2026-11-18'),
+        title: String(parsed.title || '每日五大議題輿情深度簡報'),
+        executiveOverview: String(parsed.executiveOverview || ''),
+        topicBriefings: normalizedTopics,
+        crossTopicRecommendations: Array.isArray(parsed.crossTopicRecommendations)
+          ? parsed.crossTopicRecommendations.slice(0, 4).map((r: any) => String(r))
+          : [],
+      };
+
+      setCachedResponse(cacheKey, payload);
+      return res.json(payload);
+    } catch (error: any) {
+      return handleGeminiError(res, 'AI Daily Briefing Error', error);
+    }
+  });
+
   // Vite middleware for development vs static serve for production
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

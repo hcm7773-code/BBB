@@ -46,6 +46,7 @@ import {
 } from 'lucide-react';
 import { doesMentionMatch, HighlightText } from '../utils/sentimentMatch';
 import { TopicClusteringWidget } from './TopicClusteringWidget';
+import { DailyBriefingWidget } from './DailyBriefingWidget';
 
 interface DashboardViewProps {
   platforms: EdTechPlatform[];
@@ -1158,6 +1159,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <TopicClusteringWidget
         mentions={mentions}
         onNavigateFeed={(kw) => onNavigateTab('sentiment', kw, 'feed')}
+      />
+
+      {/* Daily In-Depth Sentiment Briefing (5 Topics) */}
+      <DailyBriefingWidget
+        mentions={mentions}
+        platforms={platforms}
+        activeAlertsCount={triggeredAlerts.length}
+        onNavigateTab={(tab, keyword) =>
+          onNavigateTab(
+            tab,
+            keyword,
+            tab === 'sentiment' ? 'feed' : undefined
+          )
+        }
       />
 
       {/* Eight Charts Grid */}

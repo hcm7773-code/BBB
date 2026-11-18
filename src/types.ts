@@ -233,3 +233,20 @@ export interface TopicClusteringResponse {
   clusterSummary: string;
   dominantCategory: TopicClusterCategory;
 }
+
+export interface DailyTopicBriefingItem {
+  category: TopicClusterCategory;
+  sentimentTone: string;
+  mentionCount: number;
+  dailySummary: string;
+  perspectiveAdvice: string;
+  keySignals: string[];
+}
+
+export interface DailyDeepBriefingResponse {
+  briefingDate: string;
+  title: string;
+  executiveOverview: string;
+  topicBriefings: DailyTopicBriefingItem[];
+  crossTopicRecommendations: string[];
+}
