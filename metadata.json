@@ -1,6 +1,6 @@
 {
-  "name": "線上點餐系統",
-  "description": "提供線上美食點餐、客製化甜度冰塊加料選單、即時購物車、多元支付 checkout 與廚房接單追蹤之完整點餐網站",
+  "name": "EAAF 教育新創產業數據分析與學習歷程管理平台",
+  "description": "整合教育新創產業情報儀表板、七大競爭力指標分析、AI Tutor 五步學習歷程管理與 Multi-Agent AI 智慧排課系統之深藍科技分析平台",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
