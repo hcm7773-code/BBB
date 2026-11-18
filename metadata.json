@@ -1,6 +1,6 @@
 {
-  "name": "EAAF 教育新創產業數據分析與學習歷程管理平台",
-  "description": "整合教育新創產業情報儀表板、七大競爭力指標分析、AI Tutor 五步學習歷程管理與 Multi-Agent AI 智慧排課系統之深藍科技分析平台",
+  "name": "EAAF EdTech Intel — 教育新創產業輿情分析平台",
+  "description": "整合教育新創產業輿情監測、24 小時 AI 自動輿情摘要、五大議題語意聚類、七大競爭力指標熱力表與 Multi-Agent 生態系研究平台。",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
